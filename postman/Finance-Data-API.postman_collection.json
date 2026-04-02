@@ -1,0 +1,155 @@
+{
+  "info": {
+    "name": "Finance Data Processing API",
+    "description": "JWT: run **Auth > Login** first; the test script saves `accessToken` for Bearer auth on other requests.\n\nBase URL: edit collection variable `baseUrl` if needed (default `http://localhost:8080`).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "accessToken", "value": "" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login (saves token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const j = pm.response.json();",
+                  "    pm.collectionVariables.set('accessToken', j.accessToken);",
+                  "    console.log('Saved accessToken to collection');",
+                  "} else {",
+                  "    console.log('Login failed', pm.response.text());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"password\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": "Seeded users: admin / analyst / viewer — password `password` (unless you changed it)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users (ADMIN)",
+      "item": [
+        {
+          "name": "List users",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/users" }
+        },
+        {
+          "name": "Create user",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"newuser\",\n  \"password\": \"password12\",\n  \"role\": \"ANALYST\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{baseUrl}}/api/users"
+          }
+        },
+        {
+          "name": "Update user",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"VIEWER\",\n  \"status\": \"ACTIVE\",\n  \"newPassword\": null\n}"
+            },
+            "url": "{{baseUrl}}/api/users/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Records",
+      "item": [
+        {
+          "name": "List records (paginated)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/records?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "records"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" },
+                { "key": "type", "value": "INCOME", "disabled": true },
+                { "key": "category", "value": "Salary", "disabled": true },
+                { "key": "fromDate", "value": "2025-01-01", "disabled": true },
+                { "key": "toDate", "value": "2026-12-31", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create record (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 99.50,\n  \"type\": \"EXPENSE\",\n  \"category\": \"Food\",\n  \"date\": \"2026-04-01\",\n  \"notes\": \"Lunch\"\n}"
+            },
+            "url": "{{baseUrl}}/api/records"
+          }
+        },
+        {
+          "name": "Update record (ADMIN)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 100.00,\n  \"type\": \"EXPENSE\",\n  \"category\": \"Food\",\n  \"date\": \"2026-04-01\",\n  \"notes\": \"Updated\"\n}"
+            },
+            "url": "{{baseUrl}}/api/records/1"
+          }
+        },
+        {
+          "name": "Delete record (ADMIN)",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/records/1" }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Summary",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/summary?monthsBack=6",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboard", "summary"],
+              "query": [{ "key": "monthsBack", "value": "6" }]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

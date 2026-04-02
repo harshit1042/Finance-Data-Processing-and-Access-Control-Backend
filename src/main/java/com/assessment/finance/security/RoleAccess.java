@@ -1,0 +1,1 @@
+package com.assessment.finance.security; import com.assessment.finance.model.Role; import java.lang.annotation.*; @Target({ElementType.METHOD,ElementType.TYPE}) @Retention(RetentionPolicy.RUNTIME) @Documented public @interface RoleAccess{ Role[] value(); }

@@ -1,0 +1,1 @@
+package com.assessment.finance.dto; import com.assessment.finance.model.*; import java.time.Instant; public record UserResponse(Long id,String username,Role role,UserStatus status,Instant createdAt){}

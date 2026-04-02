@@ -1,0 +1,1 @@
+package com.assessment.finance.dto; import com.assessment.finance.model.RecordType; import java.math.BigDecimal; import java.time.*; public record RecordResponse(Long id,BigDecimal amount,RecordType type,String category,LocalDate date,String notes,Instant createdAt){}
