@@ -18,7 +18,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @Configuration
 public class SeedDataConfig {
 
-    /** Plain password for built-in demo accounts (README documents this). */
     private static final String DEMO_PASSWORD = "password";
 
     @Bean
@@ -47,10 +46,6 @@ public class SeedDataConfig {
         };
     }
 
-    /**
-     * Ensures admin / analyst / viewer exist and always use a known BCrypt hash for {@value #DEMO_PASSWORD}.
-     * Fixes 401s when the DB was created before passwords existed or hashes were wrong/outdated.
-     */
     private void syncBuiltInUsers(UserRepository userRepo, PasswordEncoder passwordEncoder) {
         List<Builtin> builtins =
                 List.of(

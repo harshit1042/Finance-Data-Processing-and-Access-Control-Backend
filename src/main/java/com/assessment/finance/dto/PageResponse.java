@@ -16,7 +16,6 @@ public record PageResponse<T>(
                 page.getTotalElements(),
                 page.getTotalPages(),
                 page.getSize(),
-                // Convert Spring's 0-based page index to 1-based for client friendliness.
                 page.getNumber() + 1);
     }
 }

@@ -10,7 +10,7 @@ mvn spring-boot:run
 ```
 Then open Swagger: `http://localhost:8080/swagger-ui.html` — or call `POST /api/auth/login` (see samples below), then use `Authorization: Bearer <accessToken>` on protected routes.
 
-## 1) What’s included (mapped to assignment)
+## 1) What’s included
 - **User & role management:** `POST/GET/PUT /api/users` (ADMIN only), roles: `VIEWER`, `ANALYST`, `ADMIN`, status: `ACTIVE/INACTIVE`
 - **Financial records:** CRUD + filtering + pagination
   - Create: `POST /api/records` (ADMIN)
@@ -44,7 +44,7 @@ Project packages are organized by responsibility:
 - `dto/`: API request/response models
 - `security/`: JWT filter + token creation + `RequestContext` (current user/role)
 - `exception/`: consistent API error responses
-- `config/`: security config + seed/demo sync
+- `config/`: security setup and startup seeding
 
 ## 4) Database Schema (what tables exist)
 ### `users`
@@ -160,7 +160,7 @@ Response contains:
 - `content` (list of records)
 - `totalElements`, `totalPages`
 - `pageSize`
-- `pageNumber` (1-based in the response for user friendliness)
+- `pageNumber` (1-based in the response)
 
 ## 8) API samples (request / response)
 
