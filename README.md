@@ -2,6 +2,14 @@
 
 Spring Boot backend for finance records, dashboard summaries, and role-based access control (RBAC).
 
+### Quick start (~60 seconds)
+```bash
+cd /path/to/Project
+docker compose up -d
+mvn spring-boot:run
+```
+Then open Swagger: `http://localhost:8080/swagger-ui.html` — or call `POST /api/auth/login` (see samples below), then use `Authorization: Bearer <accessToken>` on protected routes.
+
 ## 1) What’s included (mapped to assignment)
 - **User & role management:** `POST/GET/PUT /api/users` (ADMIN only), roles: `VIEWER`, `ANALYST`, `ADMIN`, status: `ACTIVE/INACTIVE`
 - **Financial records:** CRUD + filtering + pagination
@@ -129,6 +137,20 @@ Notes:
 - If a user is `INACTIVE`, login is blocked (403).
 - If a user hits an endpoint they don’t have access to, the API returns **403**.
 
+### HTTP status codes (common)
+
+| Code | When |
+|------|------|
+| `200` | Success (GET/PUT with body) |
+| `201` | Created (`POST /api/users`, `POST /api/records`) |
+| `204` | Success, no body (`DELETE /api/records/{id}`) |
+| `400` | Validation failed (field errors in `details`) |
+| `401` | Missing/invalid JWT, or bad login credentials |
+| `403` | Valid JWT but wrong role, or inactive user on login |
+| `404` | User or record id not found |
+| `409` | Username already exists (`POST /api/users`) |
+| `500` | Unexpected server error |
+
 ## 7) Pagination (GET /api/records)
 Query parameters:
 - `page` (0-based in request; default `0`)
@@ -140,32 +162,349 @@ Response contains:
 - `pageSize`
 - `pageNumber` (1-based in the response for user friendliness)
 
-## 8) API Call Examples (quick list)
-### Auth
-1. Login:
-   - `POST /api/auth/login`
+## 8) API samples (request / response)
 
-### Users (ADMIN only)
-2. List users:
-   - `GET /api/users`
-3. Create user (viewer/analyst/admin):
-   - `POST /api/users`
-4. Update user:
-   - `PUT /api/users/{id}`
+All protected routes need header: `Authorization: Bearer <accessToken>` unless noted.
 
-### Records
-5. Create record:
-   - `POST /api/records`
-6. List records (paginated + filters):
-   - `GET /api/records?page=0&size=20&type=INCOME&category=Salary&fromDate=2026-01-01&toDate=2026-12-31`
-7. Update record:
-   - `PUT /api/records/{id}`
-8. Delete record:
-   - `DELETE /api/records/{id}`
+---
 
-### Dashboard Summary (VIEWER allowed)
-9. Dashboard summary:
-   - `GET /api/dashboard/summary?monthsBack=6`
+### `POST /api/auth/login` (public — no JWT)
+
+**Request**
+```http
+POST /api/auth/login
+Content-Type: application/json
+```
+
+```json
+{
+  "username": "admin",
+  "password": "password"
+}
+```
+
+**Response `200`**
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiJ9...",
+  "tokenType": "Bearer",
+  "expiresInMs": 86400000,
+  "username": "admin",
+  "role": "ADMIN"
+}
+```
+
+**Response `401` (bad credentials)**
+```json
+{
+  "timestamp": "2026-04-02T12:00:00.000Z",
+  "status": 401,
+  "error": "Invalid username or password"
+}
+```
+
+```json
+{
+  "timestamp": "2026-04-02T12:00:00.000Z",
+  "status": 403,
+  "error": "User is inactive"
+}
+```
+
+---
+
+### `GET /api/users` (ADMIN)
+
+**Request**
+```http
+GET /api/users
+Authorization: Bearer <adminAccessToken>
+```
+
+**Response `200`**
+```json
+[
+  {
+    "id": 1,
+    "username": "admin",
+    "role": "ADMIN",
+    "status": "ACTIVE",
+    "createdAt": "2026-04-02T06:00:00.000Z"
+  }
+]
+```
+
+**Response `403` (wrong role)**
+```json
+{
+  "timestamp": "2026-04-02T12:00:00.000Z",
+  "status": 403,
+  "error": "You are not allowed to perform this action"
+}
+```
+
+---
+
+### `POST /api/users` (ADMIN)
+
+**Request**
+```http
+POST /api/users
+Authorization: Bearer <adminAccessToken>
+Content-Type: application/json
+```
+
+```json
+{
+  "username": "viewer1",
+  "password": "password12",
+  "role": "VIEWER",
+  "status": "ACTIVE"
+}
+```
+
+**Response `201`**
+```json
+{
+  "id": 5,
+  "username": "viewer1",
+  "role": "VIEWER",
+  "status": "ACTIVE",
+  "createdAt": "2026-04-02T06:23:13.259859Z"
+}
+```
+
+**Response `409` (username exists)**
+```json
+{
+  "timestamp": "2026-04-02T12:00:00.000Z",
+  "status": 409,
+  "error": "Username already exists"
+}
+```
+
+**Response `400` (validation)**
+```json
+{
+  "timestamp": "2026-04-02T12:00:00.000Z",
+  "status": 400,
+  "error": "Validation failed",
+  "details": {
+    "password": "password must be 8–72 characters"
+  }
+}
+```
+
+---
+
+### `PUT /api/users/{id}` (ADMIN)
+
+**Request**
+```http
+PUT /api/users/5
+Authorization: Bearer <adminAccessToken>
+Content-Type: application/json
+```
+
+```json
+{
+  "role": "ANALYST",
+  "status": "ACTIVE",
+  "newPassword": null
+}
+```
+
+To reset password, set `"newPassword": "newpass12"` (min 8 chars).
+
+**Response `200`**
+```json
+{
+  "id": 5,
+  "username": "viewer1",
+  "role": "ANALYST",
+  "status": "ACTIVE",
+  "createdAt": "2026-04-02T06:23:13.259859Z"
+}
+```
+
+**Response `404`**
+```json
+{
+  "timestamp": "2026-04-02T12:00:00.000Z",
+  "status": 404,
+  "error": "User not found"
+}
+```
+
+---
+
+### `POST /api/records` (ADMIN)
+
+**Request**
+```http
+POST /api/records
+Authorization: Bearer <adminAccessToken>
+Content-Type: application/json
+```
+
+```json
+{
+  "amount": 99.50,
+  "type": "EXPENSE",
+  "category": "Food",
+  "date": "2026-04-01",
+  "notes": "Lunch"
+}
+```
+
+`type` is `INCOME` or `EXPENSE`.
+
+**Response `201`**
+```json
+{
+  "id": 4,
+  "amount": 99.50,
+  "type": "EXPENSE",
+  "category": "Food",
+  "date": "2026-04-01",
+  "notes": "Lunch",
+  "createdAt": "2026-04-02T06:30:00.000Z"
+}
+```
+
+---
+
+### `GET /api/records` (ADMIN/ANALYST)
+
+**Request**
+```http
+GET /api/records?page=0&size=20&type=INCOME&category=Salary&fromDate=2026-01-01&toDate=2026-12-31
+Authorization: Bearer <analystOrAdminAccessToken>
+```
+
+Query params optional: `type`, `category`, `fromDate`, `toDate`, `page`, `size`.
+
+**Response `200`**
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "amount": 5000.00,
+      "type": "INCOME",
+      "category": "Salary",
+      "date": "2026-03-13",
+      "notes": "Monthly salary",
+      "createdAt": "2026-04-02T05:42:02.359849Z"
+    }
+  ],
+  "totalElements": 3,
+  "totalPages": 1,
+  "pageSize": 20,
+  "pageNumber": 1
+}
+```
+
+Note: request `page` is **0-based**; `pageNumber` in the body is **1-based**.
+
+---
+
+### `PUT /api/records/{id}` (ADMIN)
+
+**Request**
+```http
+PUT /api/records/1
+Authorization: Bearer <adminAccessToken>
+Content-Type: application/json
+```
+
+```json
+{
+  "amount": 5100.00,
+  "type": "INCOME",
+  "category": "Salary",
+  "date": "2026-03-13",
+  "notes": "Updated note"
+}
+```
+
+**Response `200`**
+```json
+{
+  "id": 1,
+  "amount": 5100.00,
+  "type": "INCOME",
+  "category": "Salary",
+  "date": "2026-03-13",
+  "notes": "Updated note",
+  "createdAt": "2026-04-02T05:42:02.359849Z"
+}
+```
+
+**Response `404`**
+```json
+{
+  "timestamp": "2026-04-02T12:00:00.000Z",
+  "status": 404,
+  "error": "Record not found"
+}
+```
+
+---
+
+### `DELETE /api/records/{id}` (ADMIN)
+
+**Request**
+```http
+DELETE /api/records/1
+Authorization: Bearer <adminAccessToken>
+```
+
+**Response `204`** — empty body.
+
+---
+
+### `GET /api/dashboard/summary` (ADMIN / ANALYST / VIEWER)
+
+**Request**
+```http
+GET /api/dashboard/summary?monthsBack=6
+Authorization: Bearer <anyAllowedRoleAccessToken>
+```
+
+**Response `200`**
+```json
+{
+  "totalIncome": 5000.00,
+  "totalExpense": 1200.00,
+  "netBalance": 3800.00,
+  "categoryTotals": [
+    { "category": "Salary", "amount": 5000.00 },
+    { "category": "Rent", "amount": 1200.00 }
+  ],
+  "recentActivity": [
+    {
+      "id": 1,
+      "amount": 5000.00,
+      "type": "INCOME",
+      "category": "Salary",
+      "date": "2026-03-13",
+      "notes": "Monthly salary",
+      "createdAt": "2026-04-02T05:42:02.359849Z"
+    }
+  ],
+  "monthlyTrends": [
+    {
+      "month": "2026-04",
+      "income": 5000.00,
+      "expense": 1200.00,
+      "net": 3800.00
+    }
+  ]
+}
+```
+
+Values depend on data in `financial_records`.
 
 ## 9) Postman
 ### Import OpenAPI (needs the app running)
